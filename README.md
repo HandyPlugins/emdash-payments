@@ -2,7 +2,7 @@
 
 Accept payments on your EmDash site without a full commerce platform.
 
-A sandboxed HandyPlugins plugin, **0.1.1 release candidate**, prepared for
+A sandboxed HandyPlugins plugin, **0.1.1**, available as
 `@handyplugins.co/payments`. Requires **EmDash >=1.2.0 <2.0.0**.
 Stripe is the only provider. This release supports fixed-price, one-time hosted
 payments, quantity 1, reusable offers, payment history and basic customer records.
@@ -289,7 +289,7 @@ deployed site, use an HTTPS endpoint and its dashboard-specific secret.
 Package metadata uses the established HandyPlugins publisher DID and MIT license.
 The expected source repository is `https://github.com/HandyPlugins/emdash-payments`;
 its public existence was confirmed during release verification. The 0.1.1
-candidate passed manifest validation, TypeScript, 69 automated tests across
+release passed manifest validation, TypeScript, 69 automated tests across
 three files, build and bundle checks. Its runtime-ID fix was verified in a
 separate EmDash site under a different installation ID. A real Stripe sandbox
 checkout verified a 1.00 USD succeeded payment,
@@ -302,5 +302,5 @@ Card details, CVCs, full addresses and raw webhook payloads are never retained.
 Basic customer identity and purchase records use administrator-only plugin
 storage, without additional field encryption. See SECURITY.md for operational
 requirements and IMPLEMENTATION.md in the development checkout for verification
-details. Version 0.1.0 is published; 0.1.1 is prepared for review and requires
-the user's explicit registry publication approval.
+details. Version 0.1.1 fixes installation-specific public URLs and includes
+the optional Astro thank-you page example in the source repository.
