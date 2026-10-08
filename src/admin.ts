@@ -5,7 +5,7 @@ import { customerSchema, idSchema, InputError, offerSchema, paymentSchema, type 
 import { amountText, money } from "./domain/money.js";
 import { saveOffer } from "./domain/offers.js";
 import { storage } from "./storage.js";
-import { saveSettings, siteOrigin, SUCCESS_PATH } from "./settings.js";
+import { saveSettings, siteOrigin, pluginPath, successPath } from "./settings.js";
 import { EVENTS, stripeProvider } from "./providers/stripe.js";
 const button = (action_id: string, label: string, value?: string): ButtonElement => ({ type: "button", action_id, label, ...(value ? { value } : {}) });
 const nav: Block = { type: "actions", elements: [button("payments", "Payments"), button("offers", "Offers"), button("customers", "Customers"), button("settings", "Settings")] };
@@ -84,14 +84,14 @@ async function settings(ctx: PluginContext): Promise<BlockResponse> {
     { type: "form", block_id: "settings", fields: [
       { type: "secret_input", action_id: "stripeKey", label: "Stripe secret/restricted API key (replace)", has_value: !!key },
       { type: "secret_input", action_id: "stripeWebhookSecret", label: "Webhook signing secret (replace)", has_value: !!webhook },
-      { type: "text_input", action_id: "successPath", label: "Success destination (same-site path)", initial_value: await ctx.settings.get<string>("successPath") ?? SUCCESS_PATH },
+      { type: "text_input", action_id: "successPath", label: "Success destination (same-site path)", initial_value: await successPath(ctx) },
     ], submit: { action_id: "save_settings", label: "Save settings" } },
     { type: "context", text: "Empty secret fields keep existing credentials. Use the confirmed Clear buttons to remove them. Success destinations apply to newly created links. Stripe controls cancellation/back behavior. A success redirect never confirms payment." },
     { type: "actions", elements: [button("test_connection", "Test connection"),
       { ...button("clear_key", "Clear API key"), confirm: { title: "Clear Stripe API key?", text: "Offer updates and webhook reconciliation will stop. Existing hosted links remain active until disabled in Stripe.", confirm: "Clear", deny: "Cancel" } },
       { ...button("clear_webhook", "Clear webhook secret"), confirm: { title: "Clear webhook secret?", text: "Webhook processing and offer updates will stop. Existing hosted links remain active until disabled in Stripe.", confirm: "Clear", deny: "Cancel" } } ] },
     { type: "section", text: "Add this public POST endpoint to Stripe. Select only the four events below and use this endpoint's signing secret." },
-    { type: "code", code: `${siteOrigin(ctx)}/_emdash/api/plugins/payments/webhook` },
+    { type: "code", code: `${siteOrigin(ctx)}${pluginPath(ctx, "webhook")}` },
     { type: "code", code: EVENTS.join("\n") },
     { type: "table", page_action_id: "settings", empty_text: "No verified webhook events received yet.", columns: [{ key: "date", label: "Received", format: "relative_time" }, { key: "type", label: "Event" }, { key: "status", label: "Status" }, { key: "attempts", label: "Attempts" }], rows: events.items.map(row => ({ date: row.data.receivedAt, type: row.data.type, status: row.data.status, attempts: row.data.attempts })) },
     { type: "context", text: "Failed reconciliation returns an error so Stripe retries. Check Stripe delivery logs; no raw webhook payloads are saved. Test connection checks API access only, not webhook delivery or every permission." },

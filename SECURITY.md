@@ -4,7 +4,7 @@ Report suspected vulnerabilities privately to **support@handyplugins.co**.
 Include Payments and EmDash versions and synthetic reproduction steps. Never
 send API keys, signing secrets, card details, real customer data or raw logs.
 
-Payments 0.1.0 runs inside EmDash's sandbox. Its only additional capability is
+Payments runs inside EmDash's sandbox. Its only additional capability is
 HTTPS access to `api.stripe.com`. Credentials are EmDash encrypted secret
 settings using AES-GCM, random nonces and authenticated plugin/setting identity;
 keep the site's encryption keys with secure operational backups. Secret inputs

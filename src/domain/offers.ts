@@ -4,7 +4,7 @@ import { idSchema, InputError, now, offerSchema, type Offer } from "./model.js";
 import { currencyCode, parseAmount } from "./money.js";
 import { siteId, storage } from "../storage.js";
 import { stripeProvider } from "../providers/stripe.js";
-import { siteOrigin, safePath, SUCCESS_PATH } from "../settings.js";
+import { siteOrigin, successPath } from "../settings.js";
 const offerInput = z.strictObject({ name: z.string().check(z.trim(), z.minLength(1), z.maxLength(120)), description: z.string().check(z.trim(), z.maxLength(500)), amount: z.string().check(z.maxLength(20)), currency: z.string().check(z.length(3)), active: z.boolean() });
 export async function saveOffer(ctx: PluginContext, input: unknown, id?: string): Promise<Offer> {
   const parsed = offerInput.safeParse(input);
@@ -29,7 +29,7 @@ export async function saveOffer(ctx: PluginContext, input: unknown, id?: string)
   const recreate = pending?.recreate ?? (!previous?.binding || previous.amount !== amount || previous.currency !== currency || previous.name !== fields.name || previous.description !== fields.description);
   const operationId = pending?.id ?? crypto.randomUUID();
   const site = pending?.siteId ?? await siteId(ctx);
-  const successUrl = pending?.successUrl ?? siteOrigin(ctx) + safePath(await ctx.settings.get("successPath") ?? SUCCESS_PATH);
+  const successUrl = pending?.successUrl ?? siteOrigin(ctx) + await successPath(ctx);
   const offer: Offer = { ...previous, ...fields, id: id ?? crypto.randomUUID(), amount, currency, provider: "stripe", createdAt: previous?.createdAt ?? time, updatedAt: time, schemaVersion: 1,
     sync: { id: operationId, siteId: site, successUrl, testMode: provider.testMode, recreate, startedAt: pending?.startedAt ?? time, leaseUntil: new Date(Date.now() + 60_000).toISOString() }, diagnostic: undefined };
   const claim = await db.offers.compareAndSet(offer.id, current?.revision ?? null, offer);

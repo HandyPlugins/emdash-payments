@@ -2,7 +2,7 @@
 
 Accept payments on your EmDash site without a full commerce platform.
 
-A sandboxed HandyPlugins plugin, **0.1.0**, prepared for
+A sandboxed HandyPlugins plugin, **0.1.1 release candidate**, prepared for
 `@handyplugins.co/payments`. Requires **EmDash >=1.2.0 <2.0.0**.
 Stripe is the only provider. This release supports fixed-price, one-time hosted
 payments, quantity 1, reusable offers, payment history and basic customer records.
@@ -16,7 +16,8 @@ license keys, payment-changing MCP tools or Pro functionality.
 2. Open **Settings** and save a Stripe secret or restricted API key and the
    endpoint-specific webhook signing secret. Start with test/sandbox credentials.
 3. In Stripe's event destinations, add the HTTPS **POST** endpoint displayed in
-   Settings: `https://your-site.example/_emdash/api/plugins/payments/webhook`.
+   Settings. The URL contains the installation's runtime ID, which may differ
+   from `payments` when installed from the registry. Copy it exactly.
 4. Subscribe only to `checkout.session.completed`,
    `checkout.session.async_payment_succeeded`,
    `checkout.session.async_payment_failed`, and `checkout.session.expired`.
@@ -91,14 +92,43 @@ currencies use their ISO exponent. The local maximum is 99,999,999 minor units;
 Stripe enforces account-specific minimums and availability. This is generic ISO
 validation, not a claim that every ISO currency is supported by every account.
 
-The success destination defaults to a public plain-text acknowledgement at
-`/_emdash/api/plugins/payments/complete`. Set a same-site path such as `/thanks`
-in Settings before creating links. It applies to newly created links; existing
+The success destination defaults to the installation's public plain-text
+acknowledgement at `/_emdash/api/plugins/<runtime-id>/complete`. A previously
+saved 0.1.0 default is resolved to the current runtime ID automatically.
+Set a same-site path such as `/payment-success` in Settings before creating
+links. It applies to newly created links; existing
 links keep their configured destination. Absolute URLs, double slashes,
 backslashes, escapes and unsafe paths are rejected. Cancellation/back behavior
 is controlled by Stripe's hosted Payment Link checkout; there is no configurable
 cancel URL in this release. The optional public `/canceled` acknowledgement never
 changes payment state. A success return **never confirms payment**.
+
+### A welcoming thank-you page
+
+The source repository includes a responsive, server-rendered Astro example
+that uses the Node Starter's existing site layout, a thank-you card, a brief
+explanation of payment confirmation, and a link back to the website. It loads
+no browser JavaScript or third-party assets and does not expose customer data.
+
+1. Copy `examples/CheckoutThanks.astro` to your site's
+   `src/components/CheckoutThanks.astro`.
+2. Copy `examples/payment-success.astro` to `src/pages/payment-success.astro`.
+   It imports the starter's `src/layouts/Base.astro`; adapt that import if your
+   site uses another layout.
+3. Confirm `/payment-success` renders, then save `/payment-success` under
+   Payments → Settings → Success destination before creating hosted links.
+
+The page is read-only and uses `no-store`, `noindex, nofollow`, and
+`no-referrer` response headers. It does not promise fulfillment, email or
+confirmed payment before verified provider reconciliation. Sandboxed EmDash
+API routes deliberately cannot serve HTML, so this page belongs to the site
+layer and requires no additional plugin capabilities.
+
+When upgrading a registry installation from 0.1.0, replace Stripe's old webhook
+URL with the exact URL displayed in Settings. Existing hosted links keep their
+old return URL; replace affected offers' links after configuring a working
+destination. Product/price edits create a replacement and deactivate the old
+link, as described above.
 
 ## Webhooks and records
 
@@ -182,8 +212,21 @@ never secrets. Admin navigation uses four compact views: **Payments**, **Offers*
 ## Development and verification
 
 This is an independent package, not a pnpm monorepo. Use **Node 24.21.0** and
-**pnpm 11.9.0**. From the lab root, select the pinned runtime and local Corepack
-cache as documented in the root README, then:
+**pnpm 11.9.0**. From this repository, run:
+
+```bash
+nvm use
+corepack pnpm install --frozen-lockfile
+corepack pnpm validate
+corepack pnpm typecheck
+corepack pnpm test
+corepack pnpm build
+corepack pnpm bundle
+```
+
+The optional development lab connects this package to a separate Node Starter.
+From that lab's root, select the same pinned runtime and its local Corepack
+cache as documented in the lab README, then:
 
 ```bash
 corepack pnpm --dir payments install --frozen-lockfile
@@ -245,9 +288,11 @@ deployed site, use an HTTPS endpoint and its dashboard-specific secret.
 
 Package metadata uses the established HandyPlugins publisher DID and MIT license.
 The expected source repository is `https://github.com/HandyPlugins/emdash-payments`;
-its public existence was confirmed during release verification. The release
-passed manifest validation, TypeScript, 63 automated tests, build and bundle
-checks. A real Stripe sandbox checkout verified a 1.00 USD succeeded payment,
+its public existence was confirmed during release verification. The 0.1.1
+candidate passed manifest validation, TypeScript, 69 automated tests across
+three files, build and bundle checks. Its runtime-ID fix was verified in a
+separate EmDash site under a different installation ID. A real Stripe sandbox
+checkout verified a 1.00 USD succeeded payment,
 customer history, signed HTTP 200 delivery, duplicate redelivery without duplicate
 records, stable activation URLs and replacement URLs after repricing.
 
@@ -257,4 +302,5 @@ Card details, CVCs, full addresses and raw webhook payloads are never retained.
 Basic customer identity and purchase records use administrator-only plugin
 storage, without additional field encryption. See SECURITY.md for operational
 requirements and IMPLEMENTATION.md in the development checkout for verification
-details. Local commits and registry publication are separate from source pushes.
+details. Version 0.1.0 is published; 0.1.1 is prepared for review and requires
+the user's explicit registry publication approval.

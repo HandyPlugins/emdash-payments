@@ -3,6 +3,15 @@ import type { PluginContext } from "emdash/plugin";
 import { InputError } from "./domain/model.js";
 export const SUCCESS_PATH = "/_emdash/api/plugins/payments/complete";
 export const CANCEL_PATH = "/_emdash/api/plugins/payments/canceled";
+export function pluginPath(ctx: Pick<PluginContext, "plugin">, route: "complete" | "canceled" | "webhook"): string {
+  return `/_emdash/api/plugins/${encodeURIComponent(ctx.plugin.id)}/${route}`;
+}
+export async function successPath(ctx: Pick<PluginContext, "plugin"> & { settings: Pick<PluginContext["settings"], "get"> }): Promise<string> {
+  const configured = await ctx.settings.get<string>("successPath");
+  // Treat the old built-in default as automatic when registry installation
+  // assigns a runtime ID that differs from the package slug.
+  return !configured || configured === SUCCESS_PATH ? pluginPath(ctx, "complete") : safePath(configured);
+}
 export function safePath(value: unknown): string {
   if (typeof value !== "string" || value.length > 500 || !value.startsWith("/") || value.startsWith("//") || /[\\\s\x00-\x1f\x7f%#]/.test(value)) throw new InputError("Return destinations must be same-site paths starting with one slash, without escapes or fragments.");
   const url = new URL(value, "https://site.invalid");

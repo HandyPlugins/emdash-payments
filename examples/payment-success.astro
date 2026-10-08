@@ -1,0 +1,12 @@
+---
+import Base from "../layouts/Base.astro";
+import CheckoutThanks from "../components/CheckoutThanks.astro";
+export const prerender = false;
+Astro.response.headers.set("Cache-Control", "no-store");
+Astro.response.headers.set("X-Robots-Tag", "noindex, nofollow");
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+---
+
+<Base title="Thank you" description="Thank you for your purchase.">
+  <CheckoutThanks />
+</Base>

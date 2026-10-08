@@ -83,6 +83,16 @@ describe("Block Kit, trusted offers, Stripe Payment Links and secrets", () => {
     await setup(); expect((await host.admin.submit("/manage", "save_offer", input, { blockId: "new-offer" })).toast?.type).toBe("error");
     expect(await host.inspect.storage.list("offers")).toHaveLength(0); expect(host.http.requests()).toHaveLength(0);
   });
+  it("sends the configured site thank-you page to Stripe without exposing secrets", async () => {
+    await setup();
+    expect((await host.admin.submit("/manage", "save_settings", {
+      stripeKey: "", stripeWebhookSecret: "", successPath: "/payment-success",
+    }, { blockId: "settings" })).toast?.type).toBe("success");
+    await offer();
+    const body = new URLSearchParams(new TextDecoder().decode(host.http.requests().at(-1)!.body));
+    expect(body.get("after_completion[redirect][url]")).toBe("https://payments.test/payment-success");
+    expect(JSON.stringify(await host.admin.act("/manage", "settings"))).not.toContain(key);
+  });
   it("requires both encrypted provider credentials", async () => {
     await setup(false);
     expect((await host.admin.submit("/manage", "save_offer", values, { blockId: "new-offer" })).toast?.type).toBe("error");

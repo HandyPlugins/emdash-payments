@@ -13,7 +13,7 @@
     "description": "Accept fixed-price one-time payments through Stripe-hosted reusable Payment Links without a full commerce platform. Create and activate offers, copy a checkout URL, and view verified payments and basic customer records in EmDash. Credentials are encrypted secret settings. Raw-byte webhooks use Stripe signature verification, durable event deduplication and current provider-state reconciliation. Stripe is the only v0.1 provider. Product/price edits replace the hosted link; update site buttons after such edits. Refunds, subscriptions, coupons, tax calculation and fulfillment are not included.",
     "installation": "Requires EmDash >=1.2.0 <2.0.0 and a sandbox runner. Install @handyplugins.co/payments, review API-host and public-route permissions, then open Payments and configure Stripe credentials and the displayed webhook before creating an offer.",
     "faq": "Does Payments create a full store? No; it provides fixed-price one-time hosted checkout links and local payment/customer history. Is the copied URL reusable? Yes. Activation changes preserve it; product/price edits replace it and require updating site buttons. Does a success page confirm payment? No; only verified Stripe state does. Are refunds, subscriptions or tax supported? Not in v0.1.",
-    "changelog": "0.1.0: Initial Stripe Payment Links release with encrypted credentials, offers, verified idempotent webhook reconciliation, payment history and minimal customer records.",
+    "changelog": "0.1.1: Use the installation's runtime ID for webhook and default return URLs; include a ready-to-use Astro thank-you page example. 0.1.0: Initial Stripe Payment Links release with encrypted credentials, offers, verified idempotent webhook reconciliation, payment history and minimal customer records.",
     "security": "Report vulnerabilities privately to support@handyplugins.co using synthetic reproductions. Payments is sandboxed and requests API access only to api.stripe.com. Secrets use EmDash encrypted settings. Webhooks verify exact bytes and the endpoint signature before processing. Payment/customer records require administrator access. No card details, full billing addresses or raw webhook payloads are retained. Preserve your site's encryption keys with secure backups. Disabling credentials does not deactivate existing hosted links; deactivate offers first. See the bundled SECURITY.md for details."
   },
   "release": { "requires": { "env:emdash": ">=1.2.0 <2.0.0" } },
@@ -31,7 +31,7 @@
     "settingsSchema": {
       "stripeKey": { "type": "secret", "label": "Stripe API key" },
       "stripeWebhookSecret": { "type": "secret", "label": "Stripe webhook signing secret" },
-      "successPath": { "type": "string", "label": "Success path", "default": "/_emdash/api/plugins/payments/complete" }
+      "successPath": { "type": "string", "label": "Success path" }
     }
   }
 }
