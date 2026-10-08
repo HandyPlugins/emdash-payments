@@ -57,7 +57,8 @@ describe("Block Kit, trusted offers, Stripe Payment Links and secrets", () => {
     expect(webhook).toMatchObject({ public: true, methods: ["POST"], response: "raw", request: { body: "bytes", headers: ["stripe-signature"], maxBytes: 262144 } });
     expect(admin).toMatchObject({ permission: "plugins:manage", methods: ["POST"] });
     expect(Object.keys(host.manifest.mcp?.tools ?? {})).toHaveLength(0);
-  });
+    // The first test includes cold workerd startup and host migrations on CI.
+  }, 15_000);
   it("loads onboarding and generates a reusable hosted URL using trusted minor-unit price", async () => {
     await setup(); expect(JSON.stringify(await host.admin.loadPage("/manage"))).toContain("No payments yet");
     expect(JSON.stringify(await host.admin.act("/manage", "new"))).toContain("New offer");
