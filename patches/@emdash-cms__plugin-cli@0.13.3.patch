@@ -1,0 +1,67 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -2682,6 +2682,9 @@
+ 			platform: "neutral",
++			inputOptions: { resolve: { conditionNames: ["workerd", "import", "default"] } },
+ 			external: [],
+ 			noExternal: [
++				"stripe",
++				"zod/mini",
+ 				"emdash/plugin",
+ 				"zod",
+ 				"@emdash-cms/blocks",
+@@ -2847,6 +2850,9 @@
+ 			platform: "neutral",
++			inputOptions: { resolve: { conditionNames: ["workerd", "import", "default"] } },
+ 			external: [],
+ 			noExternal: [
++				"stripe",
++				"zod/mini",
+ 				"emdash/plugin",
+ 				"zod",
+ 				"@emdash-cms/blocks",
+@@ -3290,3 +3296,6 @@
+ async function collectAssets(ctx) {
+ 	const { pluginDir, bundleDir, log, warn } = ctx;
++	for (const file of ["LICENSE", "SECURITY.md", "THIRD-PARTY-NOTICES.md"]) {
++		if (await fileExists(join(pluginDir, file))) await copyFile(join(pluginDir, file), join(bundleDir, file));
++	}
+ 	const readmePath = join(pluginDir, "README.md");
+@@ -10022,5 +10031,5 @@
+ const WATCH_GLOBS = [
+-	"src/**",
++	"src",
+ 	"emdash-plugin.jsonc",
+ 	"package.json"
+ ];
+diff --git a/dist/api.mjs b/dist/api.mjs
+--- a/dist/api.mjs
++++ b/dist/api.mjs
+@@ -2542,6 +2542,9 @@
+ 			platform: "neutral",
++			inputOptions: { resolve: { conditionNames: ["workerd", "import", "default"] } },
+ 			external: [],
+ 			noExternal: [
++				"stripe",
++				"zod/mini",
+ 				"emdash/plugin",
+ 				"zod",
+ 				"@emdash-cms/blocks",
+@@ -2707,6 +2710,9 @@
+ 			platform: "neutral",
++			inputOptions: { resolve: { conditionNames: ["workerd", "import", "default"] } },
+ 			external: [],
+ 			noExternal: [
++				"stripe",
++				"zod/mini",
+ 				"emdash/plugin",
+ 				"zod",
+ 				"@emdash-cms/blocks",
+@@ -3082,3 +3088,6 @@
+ async function collectAssets(ctx) {
+ 	const { pluginDir, bundleDir, log, warn } = ctx;
++	for (const file of ["LICENSE", "SECURITY.md", "THIRD-PARTY-NOTICES.md"]) {
++		if (await fileExists(join(pluginDir, file))) await copyFile(join(pluginDir, file), join(bundleDir, file));
++	}
+ 	const readmePath = join(pluginDir, "README.md");

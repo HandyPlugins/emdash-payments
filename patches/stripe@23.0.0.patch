@@ -1,0 +1,1275 @@
+diff --git a/esm/stripe.core.js b/esm/stripe.core.js
+--- a/esm/stripe.core.js
++++ b/esm/stripe.core.js
+@@ -7,91 +7,20 @@
+ import { ApiVersion, ApiMajorVersion } from './apiVersion.js';
+ import { CryptoProvider } from './crypto/CryptoProvider.js';
+ import { HttpClient, HttpClientResponse } from './net/HttpClient.js';
+-import * as resources from './resources.js';
++// Payments-only resource registry; transport, crypto and verification remain upstream.
++const resources = { BalanceResource, Checkout, PaymentLinkResource, PriceResource, ProductResource };
+ import { createApiKeyAuthenticator, detectAIAgent, maybeExtractFromCloudProviderEnvelope, parsePayload, pascalToCamelCase, validateInteger, } from './utils.js';
+ import { StripeEventNotificationHandler, } from './StripeEventNotificationHandler.js';
+ import { Decimal, } from './shared.js';
+ // StripeInstanceImports: The beginning of the section generated from our OpenAPI spec
+-import { AccountResource, } from './resources/Accounts.js';
+-import { AccountLinkResource, } from './resources/AccountLinks.js';
+-import { AccountSessionResource, } from './resources/AccountSessions.js';
+-import { ApplePayDomainResource, } from './resources/ApplePayDomains.js';
+-import { ApplicationFeeResource, } from './resources/ApplicationFees.js';
+ import { BalanceResource, } from './resources/Balance.js';
+-import { BalanceSettingResource, } from './resources/BalanceSettings.js';
+-import { BalanceTransactionResource, } from './resources/BalanceTransactions.js';
+-import { ChargeResource, } from './resources/Charges.js';
+-import { ConfirmationTokenResource, } from './resources/ConfirmationTokens.js';
+-import { CountrySpecResource, } from './resources/CountrySpecs.js';
+-import { CouponResource, } from './resources/Coupons.js';
+-import { CreditNoteResource, } from './resources/CreditNotes.js';
+-import { CustomerResource, } from './resources/Customers.js';
+-import { CustomerSessionResource, } from './resources/CustomerSessions.js';
+-import { DisputeResource, } from './resources/Disputes.js';
+-import { EphemeralKeyResource, } from './resources/EphemeralKeys.js';
+-import { ExchangeRateResource, } from './resources/ExchangeRates.js';
+-import { FileResource, } from './resources/Files.js';
+-import { FileLinkResource, } from './resources/FileLinks.js';
+-import { InvoiceResource, } from './resources/Invoices.js';
+-import { InvoiceItemResource, } from './resources/InvoiceItems.js';
+-import { InvoicePaymentResource, } from './resources/InvoicePayments.js';
+-import { InvoiceRenderingTemplateResource, } from './resources/InvoiceRenderingTemplates.js';
+-import { MandateResource, } from './resources/Mandates.js';
+-import { PaymentAttemptRecordResource, } from './resources/PaymentAttemptRecords.js';
+-import { PaymentIntentResource, } from './resources/PaymentIntents.js';
+ import { PaymentLinkResource, } from './resources/PaymentLinks.js';
+-import { PaymentMethodResource, } from './resources/PaymentMethods.js';
+-import { PaymentMethodConfigurationResource, } from './resources/PaymentMethodConfigurations.js';
+-import { PaymentMethodDomainResource, } from './resources/PaymentMethodDomains.js';
+-import { PaymentRecordResource, } from './resources/PaymentRecords.js';
+-import { PayoutResource, } from './resources/Payouts.js';
+-import { PlanResource, } from './resources/Plans.js';
+ import { PriceResource, } from './resources/Prices.js';
+ import { ProductResource, } from './resources/Products.js';
+-import { PromotionCodeResource, } from './resources/PromotionCodes.js';
+-import { QuoteResource, } from './resources/Quotes.js';
+-import { RefundResource, } from './resources/Refunds.js';
+-import { ReviewResource, } from './resources/Reviews.js';
+-import { SetupAttemptResource, } from './resources/SetupAttempts.js';
+-import { SetupIntentResource, } from './resources/SetupIntents.js';
+-import { ShippingRateResource, } from './resources/ShippingRates.js';
+-import { SourceResource, } from './resources/Sources.js';
+-import { SubscriptionResource, } from './resources/Subscriptions.js';
+-import { SubscriptionItemResource, } from './resources/SubscriptionItems.js';
+-import { SubscriptionScheduleResource, } from './resources/SubscriptionSchedules.js';
+-import { TaxCodeResource, } from './resources/TaxCodes.js';
+-import { TaxIdResource, } from './resources/TaxIds.js';
+-import { TaxRateResource, } from './resources/TaxRates.js';
+-import { TokenResource, } from './resources/Tokens.js';
+-import { TopupResource, } from './resources/Topups.js';
+-import { TransferResource, } from './resources/Transfers.js';
+-import { WebhookEndpointResource, } from './resources/WebhookEndpoints.js';
+-import { Apps } from './resources/Apps/index.js';
+-import { Billing } from './resources/Billing/index.js';
+-import { BillingPortal } from './resources/BillingPortal/index.js';
+ import { Checkout } from './resources/Checkout/index.js';
+-import { Climate } from './resources/Climate/index.js';
+-import { Entitlements } from './resources/Entitlements/index.js';
+-import { FinancialConnections } from './resources/FinancialConnections/index.js';
+-import { Forwarding } from './resources/Forwarding/index.js';
+-import { Identity } from './resources/Identity/index.js';
+-import { Issuing } from './resources/Issuing/index.js';
+-import { ProductCatalog } from './resources/ProductCatalog/index.js';
+-import { Radar } from './resources/Radar/index.js';
+-import { Reporting } from './resources/Reporting/index.js';
+-import { Sigma } from './resources/Sigma/index.js';
+-import { Tax } from './resources/Tax/index.js';
+-import { Terminal } from './resources/Terminal/index.js';
+-import { TestHelpers } from './resources/TestHelpers/index.js';
+-import { ThreeDSecure } from './resources/ThreeDSecure/index.js';
+-import { Treasury } from './resources/Treasury/index.js';
+-import { V2 } from './resources/V2/index.js';
+-import { Reserve } from './resources/Reserve/index.js';
+ // StripeInstanceImports: The end of the section generated from our OpenAPI spec
+ // V1EventImports: The beginning of the section generated from our OpenAPI spec
+-import { EventResource, } from './resources/Events.js';
+ // V1EventImports: The end of the section generated from our OpenAPI spec
+-import { OAuthResource } from './resources.js';
+ const DEFAULT_HOST = 'api.stripe.com';
+ const DEFAULT_PORT = '443';
+ const DEFAULT_BASE_PATH = '/v1/';
+@@ -206,86 +135,14 @@
+         this._emitEventBodies = props.emitEventBodies === true;
+         this._requestSender = Stripe._requestSenderFactory(this);
+         // StripeInitInstanceVariables: The beginning of the section generated from our OpenAPI spec
+-        this.accountLinks = new AccountLinkResource(this);
+-        this.accountSessions = new AccountSessionResource(this);
+-        this.accounts = new AccountResource(this);
+-        this.applePayDomains = new ApplePayDomainResource(this);
+-        this.applicationFees = new ApplicationFeeResource(this);
+         this.balance = new BalanceResource(this);
+-        this.balanceSettings = new BalanceSettingResource(this);
+-        this.balanceTransactions = new BalanceTransactionResource(this);
+-        this.charges = new ChargeResource(this);
+-        this.confirmationTokens = new ConfirmationTokenResource(this);
+-        this.countrySpecs = new CountrySpecResource(this);
+-        this.coupons = new CouponResource(this);
+-        this.creditNotes = new CreditNoteResource(this);
+-        this.customerSessions = new CustomerSessionResource(this);
+-        this.customers = new CustomerResource(this);
+-        this.disputes = new DisputeResource(this);
+-        this.ephemeralKeys = new EphemeralKeyResource(this);
+-        this.events = new EventResource(this);
+-        this.exchangeRates = new ExchangeRateResource(this);
+-        this.fileLinks = new FileLinkResource(this);
+-        this.files = new FileResource(this);
+-        this.invoiceItems = new InvoiceItemResource(this);
+-        this.invoicePayments = new InvoicePaymentResource(this);
+-        this.invoiceRenderingTemplates = new InvoiceRenderingTemplateResource(this);
+-        this.invoices = new InvoiceResource(this);
+-        this.mandates = new MandateResource(this);
+-        this.paymentAttemptRecords = new PaymentAttemptRecordResource(this);
+-        this.paymentIntents = new PaymentIntentResource(this);
+         this.paymentLinks = new PaymentLinkResource(this);
+-        this.paymentMethodConfigurations = new PaymentMethodConfigurationResource(this);
+-        this.paymentMethodDomains = new PaymentMethodDomainResource(this);
+-        this.paymentMethods = new PaymentMethodResource(this);
+-        this.paymentRecords = new PaymentRecordResource(this);
+-        this.payouts = new PayoutResource(this);
+-        this.plans = new PlanResource(this);
+         this.prices = new PriceResource(this);
+         this.products = new ProductResource(this);
+-        this.promotionCodes = new PromotionCodeResource(this);
+-        this.quotes = new QuoteResource(this);
+-        this.refunds = new RefundResource(this);
+-        this.reviews = new ReviewResource(this);
+-        this.setupAttempts = new SetupAttemptResource(this);
+-        this.setupIntents = new SetupIntentResource(this);
+-        this.shippingRates = new ShippingRateResource(this);
+-        this.sources = new SourceResource(this);
+-        this.subscriptionItems = new SubscriptionItemResource(this);
+-        this.subscriptionSchedules = new SubscriptionScheduleResource(this);
+-        this.subscriptions = new SubscriptionResource(this);
+-        this.taxCodes = new TaxCodeResource(this);
+-        this.taxIds = new TaxIdResource(this);
+-        this.taxRates = new TaxRateResource(this);
+-        this.tokens = new TokenResource(this);
+-        this.topups = new TopupResource(this);
+-        this.transfers = new TransferResource(this);
+-        this.webhookEndpoints = new WebhookEndpointResource(this);
+-        this.apps = new Apps(this);
+-        this.billing = new Billing(this);
+-        this.billingPortal = new BillingPortal(this);
+         this.checkout = new Checkout(this);
+-        this.climate = new Climate(this);
+-        this.entitlements = new Entitlements(this);
+-        this.financialConnections = new FinancialConnections(this);
+-        this.forwarding = new Forwarding(this);
+-        this.identity = new Identity(this);
+-        this.issuing = new Issuing(this);
+-        this.productCatalog = new ProductCatalog(this);
+-        this.radar = new Radar(this);
+-        this.reporting = new Reporting(this);
+-        this.sigma = new Sigma(this);
+-        this.tax = new Tax(this);
+-        this.terminal = new Terminal(this);
+-        this.testHelpers = new TestHelpers(this);
+-        this.threeDSecure = new ThreeDSecure(this);
+-        this.treasury = new Treasury(this);
+-        this.v2 = new V2(this);
+         // StripeInitInstanceVariables: The end of the section generated from our OpenAPI spec
+         // hardcoded properties and resources
+         // account property is added for backward compatibility
+-        this.account = this.accounts;
+-        this.oauth = new OAuthResource(this);
+         // this._prepResources();
+     }
+     /**
+diff --git a/esm/resources/Products.js b/esm/resources/Products.js
+--- a/esm/resources/Products.js
++++ b/esm/resources/Products.js
+@@ -4,29 +4,15 @@
+     /**
+      * Delete a product. Deleting a product is only possible if it has no prices associated with it. Additionally, deleting a product with type=good is only possible if it has no SKUs associated with it.
+      */
+-    del(id, params, options) {
+-        return this._makeRequest('DELETE', `/v1/products/${encodeURIComponent(id)}`, params, options);
+-    }
+     /**
+      * Retrieves the details of an existing product. Supply the unique product ID from either a product creation request or the product list, and Stripe will return the corresponding product information.
+      */
+-    retrieve(id, params, options) {
+-        return this._makeRequest('GET', `/v1/products/${encodeURIComponent(id)}`, params, options);
+-    }
+     /**
+      * Updates the specific product by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+      */
+-    update(id, params, options) {
+-        return this._makeRequest('POST', `/v1/products/${encodeURIComponent(id)}`, params, options);
+-    }
+     /**
+      * Returns a list of your products. The products are returned sorted by creation date, with the most recently created products appearing first.
+      */
+-    list(params, options) {
+-        return this._makeRequest('GET', '/v1/products', params, options, {
+-            methodType: 'list',
+-        });
+-    }
+     /**
+      * Creates a new product object.
+      */
+@@ -70,36 +56,17 @@
+      * conditions, data is searchable in less than a minute. Occasionally, propagation of new or updated data can be up
+      * to an hour behind during outages. Search functionality is not available to merchants in India.
+      */
+-    search(params, options) {
+-        return this._makeRequest('GET', '/v1/products/search', params, options, {
+-            methodType: 'search',
+-        });
+-    }
+     /**
+      * Deletes the feature attachment to a product
+      */
+-    deleteFeature(productId, id, params, options) {
+-        return this._makeRequest('DELETE', `/v1/products/${encodeURIComponent(productId)}/features/${encodeURIComponent(id)}`, params, options);
+-    }
+     /**
+      * Retrieves a product_feature, which represents a feature attachment to a product
+      */
+-    retrieveFeature(productId, id, params, options) {
+-        return this._makeRequest('GET', `/v1/products/${encodeURIComponent(productId)}/features/${encodeURIComponent(id)}`, params, options);
+-    }
+     /**
+      * Retrieve a list of features for a product
+      */
+-    listFeatures(id, params, options) {
+-        return this._makeRequest('GET', `/v1/products/${encodeURIComponent(id)}/features`, params, options, {
+-            methodType: 'list',
+-        });
+-    }
+     /**
+      * Creates a product_feature, which represents a feature attachment to a product
+      */
+-    createFeature(id, params, options) {
+-        return this._makeRequest('POST', `/v1/products/${encodeURIComponent(id)}/features`, params, options);
+-    }
+ }
+ //# sourceMappingURL=Products.js.map
+\ No newline at end of file
+diff --git a/esm/resources/Prices.js b/esm/resources/Prices.js
+--- a/esm/resources/Prices.js
++++ b/esm/resources/Prices.js
+@@ -4,72 +4,6 @@
+     /**
+      * Returns a list of your active prices, excluding [inline prices](https://docs.stripe.com/docs/products-prices/pricing-models#inline-pricing). For the list of inactive prices, set active to false.
+      */
+-    list(params, options) {
+-        return this._makeRequest('GET', '/v1/prices', params, options, {
+-            methodType: 'list',
+-            responseSchema: {
+-                kind: 'object',
+-                fields: {
+-                    data: {
+-                        kind: 'array',
+-                        element: {
+-                            kind: 'object',
+-                            fields: {
+-                                currency_options: {
+-                                    kind: 'array',
+-                                    element: {
+-                                        kind: 'object',
+-                                        fields: {
+-                                            tiers: {
+-                                                kind: 'array',
+-                                                element: {
+-                                                    kind: 'object',
+-                                                    fields: {
+-                                                        flat_amount_decimal: {
+-                                                            kind: 'nullable',
+-                                                            inner: { kind: 'decimal_string' },
+-                                                        },
+-                                                        unit_amount_decimal: {
+-                                                            kind: 'nullable',
+-                                                            inner: { kind: 'decimal_string' },
+-                                                        },
+-                                                    },
+-                                                },
+-                                            },
+-                                            unit_amount_decimal: {
+-                                                kind: 'nullable',
+-                                                inner: { kind: 'decimal_string' },
+-                                            },
+-                                        },
+-                                    },
+-                                },
+-                                tiers: {
+-                                    kind: 'array',
+-                                    element: {
+-                                        kind: 'object',
+-                                        fields: {
+-                                            flat_amount_decimal: {
+-                                                kind: 'nullable',
+-                                                inner: { kind: 'decimal_string' },
+-                                            },
+-                                            unit_amount_decimal: {
+-                                                kind: 'nullable',
+-                                                inner: { kind: 'decimal_string' },
+-                                            },
+-                                        },
+-                                    },
+-                                },
+-                                unit_amount_decimal: {
+-                                    kind: 'nullable',
+-                                    inner: { kind: 'decimal_string' },
+-                                },
+-                            },
+-                        },
+-                    },
+-                },
+-            },
+-        });
+-    }
+     /**
+      * Creates a new [Price for an existing <a href="https://docs.stripe.com/api/products">Product](https://docs.stripe.com/api/prices). The Price can be recurring or one-time.
+      */
+@@ -168,194 +102,14 @@
+     /**
+      * Retrieves the price with the given ID.
+      */
+-    retrieve(id, params, options) {
+-        return this._makeRequest('GET', `/v1/prices/${encodeURIComponent(id)}`, params, options, {
+-            responseSchema: {
+-                kind: 'object',
+-                fields: {
+-                    currency_options: {
+-                        kind: 'array',
+-                        element: {
+-                            kind: 'object',
+-                            fields: {
+-                                tiers: {
+-                                    kind: 'array',
+-                                    element: {
+-                                        kind: 'object',
+-                                        fields: {
+-                                            flat_amount_decimal: {
+-                                                kind: 'nullable',
+-                                                inner: { kind: 'decimal_string' },
+-                                            },
+-                                            unit_amount_decimal: {
+-                                                kind: 'nullable',
+-                                                inner: { kind: 'decimal_string' },
+-                                            },
+-                                        },
+-                                    },
+-                                },
+-                                unit_amount_decimal: {
+-                                    kind: 'nullable',
+-                                    inner: { kind: 'decimal_string' },
+-                                },
+-                            },
+-                        },
+-                    },
+-                    tiers: {
+-                        kind: 'array',
+-                        element: {
+-                            kind: 'object',
+-                            fields: {
+-                                flat_amount_decimal: {
+-                                    kind: 'nullable',
+-                                    inner: { kind: 'decimal_string' },
+-                                },
+-                                unit_amount_decimal: {
+-                                    kind: 'nullable',
+-                                    inner: { kind: 'decimal_string' },
+-                                },
+-                            },
+-                        },
+-                    },
+-                    unit_amount_decimal: {
+-                        kind: 'nullable',
+-                        inner: { kind: 'decimal_string' },
+-                    },
+-                },
+-            },
+-        });
+-    }
+     /**
+      * Updates the specified price by setting the values of the parameters passed. Any parameters not provided are left unchanged.
+      */
+-    update(id, params, options) {
+-        return this._makeRequest('POST', `/v1/prices/${encodeURIComponent(id)}`, params, options, {
+-            responseSchema: {
+-                kind: 'object',
+-                fields: {
+-                    currency_options: {
+-                        kind: 'array',
+-                        element: {
+-                            kind: 'object',
+-                            fields: {
+-                                tiers: {
+-                                    kind: 'array',
+-                                    element: {
+-                                        kind: 'object',
+-                                        fields: {
+-                                            flat_amount_decimal: {
+-                                                kind: 'nullable',
+-                                                inner: { kind: 'decimal_string' },
+-                                            },
+-                                            unit_amount_decimal: {
+-                                                kind: 'nullable',
+-                                                inner: { kind: 'decimal_string' },
+-                                            },
+-                                        },
+-                                    },
+-                                },
+-                                unit_amount_decimal: {
+-                                    kind: 'nullable',
+-                                    inner: { kind: 'decimal_string' },
+-                                },
+-                            },
+-                        },
+-                    },
+-                    tiers: {
+-                        kind: 'array',
+-                        element: {
+-                            kind: 'object',
+-                            fields: {
+-                                flat_amount_decimal: {
+-                                    kind: 'nullable',
+-                                    inner: { kind: 'decimal_string' },
+-                                },
+-                                unit_amount_decimal: {
+-                                    kind: 'nullable',
+-                                    inner: { kind: 'decimal_string' },
+-                                },
+-                            },
+-                        },
+-                    },
+-                    unit_amount_decimal: {
+-                        kind: 'nullable',
+-                        inner: { kind: 'decimal_string' },
+-                    },
+-                },
+-            },
+-        });
+-    }
+     /**
+      * Search for prices you've previously created using Stripe's [Search Query Language](https://docs.stripe.com/docs/search#search-query-language).
+      * Don't use search in read-after-write flows where strict consistency is necessary. Under normal operating
+      * conditions, data is searchable in less than a minute. Occasionally, propagation of new or updated data can be up
+      * to an hour behind during outages. Search functionality is not available to merchants in India.
+      */
+-    search(params, options) {
+-        return this._makeRequest('GET', '/v1/prices/search', params, options, {
+-            methodType: 'search',
+-            responseSchema: {
+-                kind: 'object',
+-                fields: {
+-                    data: {
+-                        kind: 'array',
+-                        element: {
+-                            kind: 'object',
+-                            fields: {
+-                                currency_options: {
+-                                    kind: 'array',
+-                                    element: {
+-                                        kind: 'object',
+-                                        fields: {
+-                                            tiers: {
+-                                                kind: 'array',
+-                                                element: {
+-                                                    kind: 'object',
+-                                                    fields: {
+-                                                        flat_amount_decimal: {
+-                                                            kind: 'nullable',
+-                                                            inner: { kind: 'decimal_string' },
+-                                                        },
+-                                                        unit_amount_decimal: {
+-                                                            kind: 'nullable',
+-                                                            inner: { kind: 'decimal_string' },
+-                                                        },
+-                                                    },
+-                                                },
+-                                            },
+-                                            unit_amount_decimal: {
+-                                                kind: 'nullable',
+-                                                inner: { kind: 'decimal_string' },
+-                                            },
+-                                        },
+-                                    },
+-                                },
+-                                tiers: {
+-                                    kind: 'array',
+-                                    element: {
+-                                        kind: 'object',
+-                                        fields: {
+-                                            flat_amount_decimal: {
+-                                                kind: 'nullable',
+-                                                inner: { kind: 'decimal_string' },
+-                                            },
+-                                            unit_amount_decimal: {
+-                                                kind: 'nullable',
+-                                                inner: { kind: 'decimal_string' },
+-                                            },
+-                                        },
+-                                    },
+-                                },
+-                                unit_amount_decimal: {
+-                                    kind: 'nullable',
+-                                    inner: { kind: 'decimal_string' },
+-                                },
+-                            },
+-                        },
+-                    },
+-                },
+-            },
+-        });
+-    }
+ }
+ //# sourceMappingURL=Prices.js.map
+\ No newline at end of file
+diff --git a/esm/resources/PaymentLinks.js b/esm/resources/PaymentLinks.js
+--- a/esm/resources/PaymentLinks.js
++++ b/esm/resources/PaymentLinks.js
+@@ -4,93 +4,6 @@
+     /**
+      * Returns a list of your payment links.
+      */
+-    list(params, options) {
+-        return this._makeRequest('GET', '/v1/payment_links', params, options, {
+-            methodType: 'list',
+-            responseSchema: {
+-                kind: 'object',
+-                fields: {
+-                    data: {
+-                        kind: 'array',
+-                        element: {
+-                            kind: 'object',
+-                            fields: {
+-                                line_items: {
+-                                    kind: 'object',
+-                                    fields: {
+-                                        data: {
+-                                            kind: 'array',
+-                                            element: {
+-                                                kind: 'object',
+-                                                fields: {
+-                                                    price: {
+-                                                        kind: 'nullable',
+-                                                        inner: {
+-                                                            kind: 'object',
+-                                                            fields: {
+-                                                                currency_options: {
+-                                                                    kind: 'array',
+-                                                                    element: {
+-                                                                        kind: 'object',
+-                                                                        fields: {
+-                                                                            tiers: {
+-                                                                                kind: 'array',
+-                                                                                element: {
+-                                                                                    kind: 'object',
+-                                                                                    fields: {
+-                                                                                        flat_amount_decimal: {
+-                                                                                            kind: 'nullable',
+-                                                                                            inner: { kind: 'decimal_string' },
+-                                                                                        },
+-                                                                                        unit_amount_decimal: {
+-                                                                                            kind: 'nullable',
+-                                                                                            inner: { kind: 'decimal_string' },
+-                                                                                        },
+-                                                                                    },
+-                                                                                },
+-                                                                            },
+-                                                                            unit_amount_decimal: {
+-                                                                                kind: 'nullable',
+-                                                                                inner: { kind: 'decimal_string' },
+-                                                                            },
+-                                                                        },
+-                                                                    },
+-                                                                },
+-                                                                tiers: {
+-                                                                    kind: 'array',
+-                                                                    element: {
+-                                                                        kind: 'object',
+-                                                                        fields: {
+-                                                                            flat_amount_decimal: {
+-                                                                                kind: 'nullable',
+-                                                                                inner: { kind: 'decimal_string' },
+-                                                                            },
+-                                                                            unit_amount_decimal: {
+-                                                                                kind: 'nullable',
+-                                                                                inner: { kind: 'decimal_string' },
+-                                                                            },
+-                                                                        },
+-                                                                    },
+-                                                                },
+-                                                                unit_amount_decimal: {
+-                                                                    kind: 'nullable',
+-                                                                    inner: { kind: 'decimal_string' },
+-                                                                },
+-                                                            },
+-                                                        },
+-                                                    },
+-                                                },
+-                                            },
+-                                        },
+-                                    },
+-                                },
+-                            },
+-                        },
+-                    },
+-                },
+-            },
+-        });
+-    }
+     /**
+      * Creates a payment link.
+      */
+@@ -192,84 +105,6 @@
+     /**
+      * Retrieve a payment link.
+      */
+-    retrieve(id, params, options) {
+-        return this._makeRequest('GET', `/v1/payment_links/${encodeURIComponent(id)}`, params, options, {
+-            responseSchema: {
+-                kind: 'object',
+-                fields: {
+-                    line_items: {
+-                        kind: 'object',
+-                        fields: {
+-                            data: {
+-                                kind: 'array',
+-                                element: {
+-                                    kind: 'object',
+-                                    fields: {
+-                                        price: {
+-                                            kind: 'nullable',
+-                                            inner: {
+-                                                kind: 'object',
+-                                                fields: {
+-                                                    currency_options: {
+-                                                        kind: 'array',
+-                                                        element: {
+-                                                            kind: 'object',
+-                                                            fields: {
+-                                                                tiers: {
+-                                                                    kind: 'array',
+-                                                                    element: {
+-                                                                        kind: 'object',
+-                                                                        fields: {
+-                                                                            flat_amount_decimal: {
+-                                                                                kind: 'nullable',
+-                                                                                inner: { kind: 'decimal_string' },
+-                                                                            },
+-                                                                            unit_amount_decimal: {
+-                                                                                kind: 'nullable',
+-                                                                                inner: { kind: 'decimal_string' },
+-                                                                            },
+-                                                                        },
+-                                                                    },
+-                                                                },
+-                                                                unit_amount_decimal: {
+-                                                                    kind: 'nullable',
+-                                                                    inner: { kind: 'decimal_string' },
+-                                                                },
+-                                                            },
+-                                                        },
+-                                                    },
+-                                                    tiers: {
+-                                                        kind: 'array',
+-                                                        element: {
+-                                                            kind: 'object',
+-                                                            fields: {
+-                                                                flat_amount_decimal: {
+-                                                                    kind: 'nullable',
+-                                                                    inner: { kind: 'decimal_string' },
+-                                                                },
+-                                                                unit_amount_decimal: {
+-                                                                    kind: 'nullable',
+-                                                                    inner: { kind: 'decimal_string' },
+-                                                                },
+-                                                            },
+-                                                        },
+-                                                    },
+-                                                    unit_amount_decimal: {
+-                                                        kind: 'nullable',
+-                                                        inner: { kind: 'decimal_string' },
+-                                                    },
+-                                                },
+-                                            },
+-                                        },
+-                                    },
+-                                },
+-                            },
+-                        },
+-                    },
+-                },
+-            },
+-        });
+-    }
+     /**
+      * Updates a payment link.
+      */
+@@ -354,79 +189,5 @@
+     /**
+      * When retrieving a payment link, there is an includable line_items property containing the first handful of those items. There is also a URL where you can retrieve the full (paginated) list of line items.
+      */
+-    listLineItems(id, params, options) {
+-        return this._makeRequest('GET', `/v1/payment_links/${encodeURIComponent(id)}/line_items`, params, options, {
+-            methodType: 'list',
+-            responseSchema: {
+-                kind: 'object',
+-                fields: {
+-                    data: {
+-                        kind: 'array',
+-                        element: {
+-                            kind: 'object',
+-                            fields: {
+-                                price: {
+-                                    kind: 'nullable',
+-                                    inner: {
+-                                        kind: 'object',
+-                                        fields: {
+-                                            currency_options: {
+-                                                kind: 'array',
+-                                                element: {
+-                                                    kind: 'object',
+-                                                    fields: {
+-                                                        tiers: {
+-                                                            kind: 'array',
+-                                                            element: {
+-                                                                kind: 'object',
+-                                                                fields: {
+-                                                                    flat_amount_decimal: {
+-                                                                        kind: 'nullable',
+-                                                                        inner: { kind: 'decimal_string' },
+-                                                                    },
+-                                                                    unit_amount_decimal: {
+-                                                                        kind: 'nullable',
+-                                                                        inner: { kind: 'decimal_string' },
+-                                                                    },
+-                                                                },
+-                                                            },
+-                                                        },
+-                                                        unit_amount_decimal: {
+-                                                            kind: 'nullable',
+-                                                            inner: { kind: 'decimal_string' },
+-                                                        },
+-                                                    },
+-                                                },
+-                                            },
+-                                            tiers: {
+-                                                kind: 'array',
+-                                                element: {
+-                                                    kind: 'object',
+-                                                    fields: {
+-                                                        flat_amount_decimal: {
+-                                                            kind: 'nullable',
+-                                                            inner: { kind: 'decimal_string' },
+-                                                        },
+-                                                        unit_amount_decimal: {
+-                                                            kind: 'nullable',
+-                                                            inner: { kind: 'decimal_string' },
+-                                                        },
+-                                                    },
+-                                                },
+-                                            },
+-                                            unit_amount_decimal: {
+-                                                kind: 'nullable',
+-                                                inner: { kind: 'decimal_string' },
+-                                            },
+-                                        },
+-                                    },
+-                                },
+-                            },
+-                        },
+-                    },
+-                },
+-            },
+-        });
+-    }
+ }
+ //# sourceMappingURL=PaymentLinks.js.map
+\ No newline at end of file
+diff --git a/esm/resources/Checkout/Sessions.js b/esm/resources/Checkout/Sessions.js
+--- a/esm/resources/Checkout/Sessions.js
++++ b/esm/resources/Checkout/Sessions.js
+@@ -4,205 +4,9 @@
+     /**
+      * Returns a list of Checkout Sessions.
+      */
+-    list(params, options) {
+-        return this._makeRequest('GET', '/v1/checkout/sessions', params, options, {
+-            methodType: 'list',
+-            responseSchema: {
+-                kind: 'object',
+-                fields: {
+-                    data: {
+-                        kind: 'array',
+-                        element: {
+-                            kind: 'object',
+-                            fields: {
+-                                currency_conversion: {
+-                                    kind: 'nullable',
+-                                    inner: {
+-                                        kind: 'object',
+-                                        fields: { fx_rate: { kind: 'decimal_string' } },
+-                                    },
+-                                },
+-                                line_items: {
+-                                    kind: 'object',
+-                                    fields: {
+-                                        data: {
+-                                            kind: 'array',
+-                                            element: {
+-                                                kind: 'object',
+-                                                fields: {
+-                                                    price: {
+-                                                        kind: 'nullable',
+-                                                        inner: {
+-                                                            kind: 'object',
+-                                                            fields: {
+-                                                                currency_options: {
+-                                                                    kind: 'array',
+-                                                                    element: {
+-                                                                        kind: 'object',
+-                                                                        fields: {
+-                                                                            tiers: {
+-                                                                                kind: 'array',
+-                                                                                element: {
+-                                                                                    kind: 'object',
+-                                                                                    fields: {
+-                                                                                        flat_amount_decimal: {
+-                                                                                            kind: 'nullable',
+-                                                                                            inner: { kind: 'decimal_string' },
+-                                                                                        },
+-                                                                                        unit_amount_decimal: {
+-                                                                                            kind: 'nullable',
+-                                                                                            inner: { kind: 'decimal_string' },
+-                                                                                        },
+-                                                                                    },
+-                                                                                },
+-                                                                            },
+-                                                                            unit_amount_decimal: {
+-                                                                                kind: 'nullable',
+-                                                                                inner: { kind: 'decimal_string' },
+-                                                                            },
+-                                                                        },
+-                                                                    },
+-                                                                },
+-                                                                tiers: {
+-                                                                    kind: 'array',
+-                                                                    element: {
+-                                                                        kind: 'object',
+-                                                                        fields: {
+-                                                                            flat_amount_decimal: {
+-                                                                                kind: 'nullable',
+-                                                                                inner: { kind: 'decimal_string' },
+-                                                                            },
+-                                                                            unit_amount_decimal: {
+-                                                                                kind: 'nullable',
+-                                                                                inner: { kind: 'decimal_string' },
+-                                                                            },
+-                                                                        },
+-                                                                    },
+-                                                                },
+-                                                                unit_amount_decimal: {
+-                                                                    kind: 'nullable',
+-                                                                    inner: { kind: 'decimal_string' },
+-                                                                },
+-                                                            },
+-                                                        },
+-                                                    },
+-                                                },
+-                                            },
+-                                        },
+-                                    },
+-                                },
+-                            },
+-                        },
+-                    },
+-                },
+-            },
+-        });
+-    }
+     /**
+      * Creates a Checkout Session object.
+      */
+-    create(params, options) {
+-        return this._makeRequest('POST', '/v1/checkout/sessions', params, options, {
+-            requestSchema: {
+-                kind: 'object',
+-                fields: {
+-                    line_items: {
+-                        kind: 'array',
+-                        element: {
+-                            kind: 'object',
+-                            fields: {
+-                                price_data: {
+-                                    kind: 'object',
+-                                    fields: { unit_amount_decimal: { kind: 'decimal_string' } },
+-                                },
+-                            },
+-                        },
+-                    },
+-                },
+-            },
+-            responseSchema: {
+-                kind: 'object',
+-                fields: {
+-                    currency_conversion: {
+-                        kind: 'nullable',
+-                        inner: {
+-                            kind: 'object',
+-                            fields: { fx_rate: { kind: 'decimal_string' } },
+-                        },
+-                    },
+-                    line_items: {
+-                        kind: 'object',
+-                        fields: {
+-                            data: {
+-                                kind: 'array',
+-                                element: {
+-                                    kind: 'object',
+-                                    fields: {
+-                                        price: {
+-                                            kind: 'nullable',
+-                                            inner: {
+-                                                kind: 'object',
+-                                                fields: {
+-                                                    currency_options: {
+-                                                        kind: 'array',
+-                                                        element: {
+-                                                            kind: 'object',
+-                                                            fields: {
+-                                                                tiers: {
+-                                                                    kind: 'array',
+-                                                                    element: {
+-                                                                        kind: 'object',
+-                                                                        fields: {
+-                                                                            flat_amount_decimal: {
+-                                                                                kind: 'nullable',
+-                                                                                inner: { kind: 'decimal_string' },
+-                                                                            },
+-                                                                            unit_amount_decimal: {
+-                                                                                kind: 'nullable',
+-                                                                                inner: { kind: 'decimal_string' },
+-                                                                            },
+-                                                                        },
+-                                                                    },
+-                                                                },
+-                                                                unit_amount_decimal: {
+-                                                                    kind: 'nullable',
+-                                                                    inner: { kind: 'decimal_string' },
+-                                                                },
+-                                                            },
+-                                                        },
+-                                                    },
+-                                                    tiers: {
+-                                                        kind: 'array',
+-                                                        element: {
+-                                                            kind: 'object',
+-                                                            fields: {
+-                                                                flat_amount_decimal: {
+-                                                                    kind: 'nullable',
+-                                                                    inner: { kind: 'decimal_string' },
+-                                                                },
+-                                                                unit_amount_decimal: {
+-                                                                    kind: 'nullable',
+-                                                                    inner: { kind: 'decimal_string' },
+-                                                                },
+-                                                            },
+-                                                        },
+-                                                    },
+-                                                    unit_amount_decimal: {
+-                                                        kind: 'nullable',
+-                                                        inner: { kind: 'decimal_string' },
+-                                                    },
+-                                                },
+-                                            },
+-                                        },
+-                                    },
+-                                },
+-                            },
+-                        },
+-                    },
+-                },
+-            },
+-        });
+-    }
+     /**
+      * Retrieves a Checkout Session object.
+      */
+@@ -296,274 +100,13 @@
+      *
+      * Related guide: [Dynamically update a Checkout Session](https://docs.stripe.com/payments/advanced/dynamic-updates)
+      */
+-    update(id, params, options) {
+-        return this._makeRequest('POST', `/v1/checkout/sessions/${encodeURIComponent(id)}`, params, options, {
+-            requestSchema: {
+-                kind: 'object',
+-                fields: {
+-                    line_items: {
+-                        kind: 'array',
+-                        element: {
+-                            kind: 'object',
+-                            fields: {
+-                                price_data: {
+-                                    kind: 'object',
+-                                    fields: { unit_amount_decimal: { kind: 'decimal_string' } },
+-                                },
+-                            },
+-                        },
+-                    },
+-                },
+-            },
+-            responseSchema: {
+-                kind: 'object',
+-                fields: {
+-                    currency_conversion: {
+-                        kind: 'nullable',
+-                        inner: {
+-                            kind: 'object',
+-                            fields: { fx_rate: { kind: 'decimal_string' } },
+-                        },
+-                    },
+-                    line_items: {
+-                        kind: 'object',
+-                        fields: {
+-                            data: {
+-                                kind: 'array',
+-                                element: {
+-                                    kind: 'object',
+-                                    fields: {
+-                                        price: {
+-                                            kind: 'nullable',
+-                                            inner: {
+-                                                kind: 'object',
+-                                                fields: {
+-                                                    currency_options: {
+-                                                        kind: 'array',
+-                                                        element: {
+-                                                            kind: 'object',
+-                                                            fields: {
+-                                                                tiers: {
+-                                                                    kind: 'array',
+-                                                                    element: {
+-                                                                        kind: 'object',
+-                                                                        fields: {
+-                                                                            flat_amount_decimal: {
+-                                                                                kind: 'nullable',
+-                                                                                inner: { kind: 'decimal_string' },
+-                                                                            },
+-                                                                            unit_amount_decimal: {
+-                                                                                kind: 'nullable',
+-                                                                                inner: { kind: 'decimal_string' },
+-                                                                            },
+-                                                                        },
+-                                                                    },
+-                                                                },
+-                                                                unit_amount_decimal: {
+-                                                                    kind: 'nullable',
+-                                                                    inner: { kind: 'decimal_string' },
+-                                                                },
+-                                                            },
+-                                                        },
+-                                                    },
+-                                                    tiers: {
+-                                                        kind: 'array',
+-                                                        element: {
+-                                                            kind: 'object',
+-                                                            fields: {
+-                                                                flat_amount_decimal: {
+-                                                                    kind: 'nullable',
+-                                                                    inner: { kind: 'decimal_string' },
+-                                                                },
+-                                                                unit_amount_decimal: {
+-                                                                    kind: 'nullable',
+-                                                                    inner: { kind: 'decimal_string' },
+-                                                                },
+-                                                            },
+-                                                        },
+-                                                    },
+-                                                    unit_amount_decimal: {
+-                                                        kind: 'nullable',
+-                                                        inner: { kind: 'decimal_string' },
+-                                                    },
+-                                                },
+-                                            },
+-                                        },
+-                                    },
+-                                },
+-                            },
+-                        },
+-                    },
+-                },
+-            },
+-        });
+-    }
+     /**
+      * A Checkout Session can be expired when it is in one of these statuses: open
+      *
+      * After it expires, a customer can't complete a Checkout Session and customers loading the Checkout Session see a message saying the Checkout Session is expired.
+      */
+-    expire(id, params, options) {
+-        return this._makeRequest('POST', `/v1/checkout/sessions/${encodeURIComponent(id)}/expire`, params, options, {
+-            responseSchema: {
+-                kind: 'object',
+-                fields: {
+-                    currency_conversion: {
+-                        kind: 'nullable',
+-                        inner: {
+-                            kind: 'object',
+-                            fields: { fx_rate: { kind: 'decimal_string' } },
+-                        },
+-                    },
+-                    line_items: {
+-                        kind: 'object',
+-                        fields: {
+-                            data: {
+-                                kind: 'array',
+-                                element: {
+-                                    kind: 'object',
+-                                    fields: {
+-                                        price: {
+-                                            kind: 'nullable',
+-                                            inner: {
+-                                                kind: 'object',
+-                                                fields: {
+-                                                    currency_options: {
+-                                                        kind: 'array',
+-                                                        element: {
+-                                                            kind: 'object',
+-                                                            fields: {
+-                                                                tiers: {
+-                                                                    kind: 'array',
+-                                                                    element: {
+-                                                                        kind: 'object',
+-                                                                        fields: {
+-                                                                            flat_amount_decimal: {
+-                                                                                kind: 'nullable',
+-                                                                                inner: { kind: 'decimal_string' },
+-                                                                            },
+-                                                                            unit_amount_decimal: {
+-                                                                                kind: 'nullable',
+-                                                                                inner: { kind: 'decimal_string' },
+-                                                                            },
+-                                                                        },
+-                                                                    },
+-                                                                },
+-                                                                unit_amount_decimal: {
+-                                                                    kind: 'nullable',
+-                                                                    inner: { kind: 'decimal_string' },
+-                                                                },
+-                                                            },
+-                                                        },
+-                                                    },
+-                                                    tiers: {
+-                                                        kind: 'array',
+-                                                        element: {
+-                                                            kind: 'object',
+-                                                            fields: {
+-                                                                flat_amount_decimal: {
+-                                                                    kind: 'nullable',
+-                                                                    inner: { kind: 'decimal_string' },
+-                                                                },
+-                                                                unit_amount_decimal: {
+-                                                                    kind: 'nullable',
+-                                                                    inner: { kind: 'decimal_string' },
+-                                                                },
+-                                                            },
+-                                                        },
+-                                                    },
+-                                                    unit_amount_decimal: {
+-                                                        kind: 'nullable',
+-                                                        inner: { kind: 'decimal_string' },
+-                                                    },
+-                                                },
+-                                            },
+-                                        },
+-                                    },
+-                                },
+-                            },
+-                        },
+-                    },
+-                },
+-            },
+-        });
+-    }
+     /**
+      * When retrieving a Checkout Session, there is an includable line_items property containing the first handful of those items. There is also a URL where you can retrieve the full (paginated) list of line items.
+      */
+-    listLineItems(id, params, options) {
+-        return this._makeRequest('GET', `/v1/checkout/sessions/${encodeURIComponent(id)}/line_items`, params, options, {
+-            methodType: 'list',
+-            responseSchema: {
+-                kind: 'object',
+-                fields: {
+-                    data: {
+-                        kind: 'array',
+-                        element: {
+-                            kind: 'object',
+-                            fields: {
+-                                price: {
+-                                    kind: 'nullable',
+-                                    inner: {
+-                                        kind: 'object',
+-                                        fields: {
+-                                            currency_options: {
+-                                                kind: 'array',
+-                                                element: {
+-                                                    kind: 'object',
+-                                                    fields: {
+-                                                        tiers: {
+-                                                            kind: 'array',
+-                                                            element: {
+-                                                                kind: 'object',
+-                                                                fields: {
+-                                                                    flat_amount_decimal: {
+-                                                                        kind: 'nullable',
+-                                                                        inner: { kind: 'decimal_string' },
+-                                                                    },
+-                                                                    unit_amount_decimal: {
+-                                                                        kind: 'nullable',
+-                                                                        inner: { kind: 'decimal_string' },
+-                                                                    },
+-                                                                },
+-                                                            },
+-                                                        },
+-                                                        unit_amount_decimal: {
+-                                                            kind: 'nullable',
+-                                                            inner: { kind: 'decimal_string' },
+-                                                        },
+-                                                    },
+-                                                },
+-                                            },
+-                                            tiers: {
+-                                                kind: 'array',
+-                                                element: {
+-                                                    kind: 'object',
+-                                                    fields: {
+-                                                        flat_amount_decimal: {
+-                                                            kind: 'nullable',
+-                                                            inner: { kind: 'decimal_string' },
+-                                                        },
+-                                                        unit_amount_decimal: {
+-                                                            kind: 'nullable',
+-                                                            inner: { kind: 'decimal_string' },
+-                                                        },
+-                                                    },
+-                                                },
+-                                            },
+-                                            unit_amount_decimal: {
+-                                                kind: 'nullable',
+-                                                inner: { kind: 'decimal_string' },
+-                                            },
+-                                        },
+-                                    },
+-                                },
+-                            },
+-                        },
+-                    },
+-                },
+-            },
+-        });
+-    }
+ }
+ //# sourceMappingURL=Sessions.js.map
+\ No newline at end of file
